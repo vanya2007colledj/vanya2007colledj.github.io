@@ -169,7 +169,7 @@ document.addEventListener('DOMContentLoaded', function() {
         serviceCard.className = 'service-card';
         serviceCard.innerHTML = `
             <div class="service-img">
-                <img src="${service.image}" alt="${service.title}">
+                <img src="${service.image}" alt="${service.title}" loading="lazy">
             </div>
             <div class="service-content">
                 <h3>${service.title}</h3>
@@ -188,7 +188,7 @@ document.addEventListener('DOMContentLoaded', function() {
             <div class="project-img-container">
                 <div class="project-img-swiper swiper">
                     <div class="swiper-wrapper">
-                        ${project.images.map(img => `<div class="swiper-slide"><img src="${img}" alt="${project.title}"></div>`).join('')}
+                        ${project.images.map(img => `<div class="swiper-slide"><img src="${img}" alt="${project.title}" loading="lazy"></div>`).join('')}
                     </div>
                     <div class="swiper-pagination img-pagination"></div>
                     <div class="swiper-button-prev img-prev"></div>
@@ -220,14 +220,23 @@ document.addEventListener('DOMContentLoaded', function() {
             nextEl: '.projects-swiper-wrapper .projects-next',
             prevEl: '.projects-swiper-wrapper .projects-prev',
         },
+        speed: 600,
         breakpoints: {
+            576: {
+                slidesPerView: 1.5,
+                spaceBetween: 10,
+            },
             768: {
                 slidesPerView: 2,
+                spaceBetween: 15,
             },
             1200: {
                 slidesPerView: 3,
+                spaceBetween: 20,
             }
-        }
+        },
+        touchRatio: 1.5,
+        grabCursor: true,
     });
     
     // Инициализация вложенных Swiper для фотографий проектов
@@ -243,7 +252,10 @@ document.addEventListener('DOMContentLoaded', function() {
             navigation: {
                 nextEl: swiper.querySelector('.img-next'),
                 prevEl: swiper.querySelector('.img-prev'),
-            }
+            },
+            speed: 600,
+            touchRatio: 1.5,
+            grabCursor: true,
         });
     });
     
@@ -311,13 +323,24 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Инициализация счетчиков
     initCounters();
+    
+    // Обработка изменения размера окна
+    window.addEventListener('resize', debounce(() => {
+        // Переинициализация Swiper при изменении размера окна
+        document.querySelectorAll('.project-img-swiper').forEach(swiper => {
+            if (swiper.swiper) swiper.swiper.update();
+        });
+        if (document.querySelector('.projects-swiper').swiper) {
+            document.querySelector('.projects-swiper').swiper.update();
+        }
+    }, 100));
 });
 
 // Инициализация частиц
 function initParticles() {
     particlesJS('particles-js', {
         particles: {
-            number: { value: 150, density: { enable: true, value_area: 800 } },
+            number: { value: window.innerWidth < 576 ? 80 : 150, density: { enable: true, value_area: 800 } },
             color: { value: "#ff6b00" },
             shape: { type: "circle", stroke: { width: 1, color: "#ff6b00" } },
             opacity: { value: 0.7, random: true, anim: { enable: true, speed: 2, opacity_min: 0.3, sync: false } },
@@ -347,7 +370,7 @@ function initCounters() {
             
             if (count < target) {
                 counter.innerText = `${Math.ceil(count + inc)}`;
-                setTimeout(updateCount, 20);
+                requestAnimationFrame(updateCount);
             } else {
                 counter.innerText = `${target}`;
             }
@@ -513,6 +536,7 @@ function setupIntersectionObserver() {
     const observer = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
             if (entry.isIntersecting) {
+                entry.target.classList.add('animated');
                 entry.target.style.opacity = '1';
                 entry.target.style.transform = 'translateY(0)';
             }
@@ -520,4 +544,17 @@ function setupIntersectionObserver() {
     }, observerOptions);
     
     document.querySelectorAll('.section-title, .service-card, .project-card').forEach(el => observer.observe(el));
+}
+
+// Debounce функция для оптимизации событий
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
 }
